@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>КиноПоиск - Movie Search</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #searchInput {
+            flex: 1;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 50px;
+            outline: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        #searchBtn {
+            padding: 15px 40px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        #searchBtn:hover {
+            background: #ee5a52;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 24px;
+            margin: 40px 0;
+        }
+
+        .movies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .movie-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+
+        .movie-card img {
+            width: 100%;
+            height: 375px;
+            object-fit: cover;
+        }
+
+        .movie-info {
+            padding: 20px;
+        }
+
+        .movie-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+            min-height: 50px;
+        }
+
+        .movie-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .movie-year {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .movie-rating {
+            background: #ffd700;
+            color: #333;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .no-results {
+            text-align: center;
+            color: white;
+            font-size: 24px;
+            margin-top: 40px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: white;
+            max-width: 800px;
+            margin: 50px auto;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 30px;
+            color: white;
+            cursor: pointer;
+            z-index: 10;
+            background: rgba(0,0,0,0.5);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-backdrop {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+        }
+
+        .modal-details {
+            padding: 30px;
+        }
+
+        .modal-title {
+            font-size: 32px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .modal-overview {
+            line-height: 1.6;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .modal-stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            background: #f0f0f0;
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 КиноПоиск</h1>
+            <p>Найдите свой любимый фильм</p>
+        </header>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Введите название фильма..." />
+            <button id="searchBtn">Поиск</button>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            Загрузка...
+        </div>
+
+        <div id="moviesContainer" class="movies-grid"></div>
+        <div id="noResults" class="no-results" style="display: none;">
+            Фильмы не найдены. Попробуйте другой запрос.
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c';
+        const BASE_URL = 'https://api.themoviedb.org/3';
+        const IMG_URL = 'https://image.tmdb.org/t/p/w500';
+        const BACKDROP_URL = 'https://image.tmdb.org/t/p/original';
+
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const moviesContainer = document.getElementById('moviesContainer');
+        const loading = document.getElementById('loading');
+        const noResults = document.getElementById('noResults');
+        const modal = document.getElementById('modal');
+        const modalBody = document.getElementById('modalBody');
+        const closeModal = document.querySelector('.close-modal');
+
+        // Загрузка популярных фильмов при запуске
+        loadPopularMovies();
+
+        searchBtn.addEventListener('click', searchMovies);
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchMovies();
+        });
+
+        closeModal.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        async function loadPopularMovies() {
+            showLoading();
+            try {
+                const response = await fetch(`${BASE_URL}/movie/popular?api_key=${API_KEY}&language=ru-RU&page=1`);
+                const data = await response.json();
+                displayMovies(data.results);
+            } catch (error) {
+                console.error('Ошибка:', error);
+                hideLoading();
+            }
+        }
+
+        async function searchMovies() {
+            const query = searchInput.value.trim();
+            if (!query) return;
+
+            showLoading();
+            try {
+                const response = await fetch(`${BASE_URL}/search/movie?api_key=${API_KEY}&language=ru-RU&query=${encodeURIComponent(query)}&page=1`);
+                const data = await response.json();
+                displayMovies(data.results);
+            } catch (error) {
+                console.error('Ошибка:', error);
+                hideLoading();
+            }
+        }
+
+        function displayMovies(movies) {
+            hideLoading();
+            moviesContainer.innerHTML = '';
+            noResults.style.display = 'none';
+
+            if (!movies || movies.length === 0) {
+                noResults.style.display = 'block';
+                return;
+            }
+
+            movies.forEach(movie => {
+                const movieCard = createMovieCard(movie);
+                moviesContainer.appendChild(movieCard);
+            });
+        }
+
+        function createMovieCard(movie) {
+            const card = document.createElement('div');
+            card.className = 'movie-card';
+            
+            const posterPath = movie.poster_path 
+                ? `${IMG_URL}${movie.poster_path}` 
+                : 'https://via.placeholder.com/250x375?text=No+Image';
+
+            card.innerHTML = `
+                <img src="${posterPath}" alt="${movie.title}" />
+                <div class="movie-info">
+                    <div class="movie-title">${movie.title}</div>
+                    <div class="movie-meta">
+                        <span class="movie-year">${movie.release_date ? movie.release_date.split('-')[0] : 'N/A'}</span>
+                        <span class="movie-rating">⭐ ${movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A'}</span>
+                    </div>
+                </div>
+            `;
+
+            card.addEventListener('click', () => showMovieDetails(movie.id));
+            return card;
+        }
+
+        async function showMovieDetails(movieId) {
+            try {
+                const response = await fetch(`${BASE_URL}/movie/${movieId}?api_key=${API_KEY}&language=ru-RU`);
+                const movie = await response.json();
+
+                const backdropPath = movie.backdrop_path 
+                    ? `${BACKDROP_URL}${movie.backdrop_path}` 
+                    : 'https://via.placeholder.com/800x400?text=No+Image';
+
+                modalBody.innerHTML = `
+                    <img src="${backdropPath}" alt="${movie.title}" class="modal-backdrop" />
+                    <div class="modal-details">
+                        <h2 class="modal-title">${movie.title}</h2>
+                        <p class="modal-overview">${movie.overview || 'Описание отсутствует'}</p>
+                        <div class="modal-stats">
+                            <div class="stat-item">
+                                <div class="stat-label">Рейтинг</div>
+                                <div class="stat-value">⭐ ${movie.vote_average.toFixed(1)}</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Дата выхода</div>
+                                <div class="stat-value">${movie.release_date}</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Длительность</div>
+                                <div class="stat-value">${movie.runtime} мин</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Бюджет</div>
+                                <div class="stat-value">$${movie.budget.toLocaleString()}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                modal.style.display = 'block';
+            } catch (error) {
+                console.error('Ошибка загрузки деталей:', error);
+            }
+        }
+
+        function showLoading() {
+            loading.style.display = 'block';
+            moviesContainer.innerHTML = '';
+            noResults.style.display = 'none';
+        }
+
+        function hideLoading() {
+            loading.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
